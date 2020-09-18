@@ -10,7 +10,6 @@ import {
 import { CalendarIcon } from "@heroicons/react/outline";
 import { DateTime } from "luxon";
 import { EditFieldProps } from "@/features/fields/types";
-import { Views } from "@/features/fields/enums";
 import { dateFormat, dateTimeFormat, getBrowserTimezone } from "@/lib/time";
 import { isArray, isDate, isFunction, isUndefined } from "lodash";
 import DatePicker from "react-datepicker";
@@ -54,9 +53,7 @@ const Edit = ({
   setValue: (name: string, value: unknown, config?: unknown) => void;
 }) => {
   const timezone = getBrowserTimezone();
-  const format = field.column.fieldOptions.onlyDate
-    ? dateFormat
-    : dateTimeFormat;
+  const format = field.column.fieldOptions.onlyDate ? dateFormat : dateTimeFormat
 
   const register = registerMethod(field.column.name);
   const errors = useMemo(() => formState.errors, [formState]);
@@ -107,9 +104,7 @@ const Edit = ({
 
   // This updates the local value when the filed loads for the first time of when a user has selected a value from the datepicker
   useEffect(() => {
-    if (isUndefined(field.value)) {
-      setLocalValue(DateTime.now().setZone(timezone).toFormat(format));
-    } else {
+    if (!isUndefined(field.value)) {
       setLocalValue(
         DateTime.fromISO(field.value as string)
           .setZone(timezone)
@@ -120,23 +115,19 @@ const Edit = ({
 
   // Set the value in the formData if it's valid
   useEffect(() => {
-    const value = DateTime.fromFormat(localValue, format).setZone(timezone);
+    const value = DateTime.fromFormat(localValue, format).setZone(
+      timezone
+    );
     if (value.isValid) {
-      if (view === Views.new) {
-        setValue(register.name, value.setZone("UTC").toISO(), {
-          shouldValidate: true,
-          shouldDirty: true,
-          shouldTouch: true,
-        });
-      } else {
-        setValue(register.name, value.setZone("UTC").toISO());
-      }
+      setValue(register.name, value.setZone("UTC").toISO());
     }
   }, [localValue]);
 
   // This memo holds returns the parsed value, if it's valid and if necesarry why the date is invalid.
   const [parsedValue, isValid, invalidReason] = useMemo(() => {
-    const parsed = DateTime.fromFormat(localValue, format).setZone(timezone);
+    const parsed = DateTime.fromFormat(localValue, format).setZone(
+      timezone
+    );
     if (parsed.isValid) {
       return [parsed.toFormat(format), parsed.isValid, null];
     }

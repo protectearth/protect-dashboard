@@ -3,7 +3,7 @@ import { createUser, hashPassword } from "@/features/auth";
 import { schema } from "@/features/auth/signupSchema";
 import { withMiddlewares } from "@/features/api/middleware";
 import ApiResponse from "@/features/api/ApiResponse";
-import email from "@/lib/email";
+import mailgun from "@/lib/mailgun";
 import prisma from "@/prisma";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -43,11 +43,12 @@ const handler = async (
 
   await createUser(data);
 
-  await email.send({
+  const sent = await mailgun.send({
     to: ["adrian@basetool.io", "david@basetool.io"],
     subject: "New user signup",
     text: `New user with email ${payload.email} and organization ${payload.organization}`,
   });
+  console.log('sent->', sent)
 
   return res.json(ApiResponse.withMessage(successMessage));
 };

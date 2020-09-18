@@ -1,4 +1,5 @@
 import { Button, ButtonGroup, Checkbox, Tooltip } from "@chakra-ui/react";
+import { Column } from "@/features/fields/types";
 import {
   FilterIcon,
   PencilAltIcon,
@@ -17,7 +18,6 @@ import { useAccessControl, useFilters, useSelectRecords } from "@/hooks";
 import { useBoolean, useClickAway } from "react-use";
 import { useDeleteBulkRecordsMutation } from "@/features/records/api-slice";
 import { useGetColumnsQuery } from "@/features/tables/api-slice";
-import { useGetDataSourceQuery } from "@/features/data-sources/api-slice";
 import { useRouter } from "next/router";
 import ErrorWrapper from "@/components/ErrorWrapper";
 import FiltersPanel from "@/features/tables/components/FiltersPanel";
@@ -50,138 +50,111 @@ const SelectorColumnCell = ({ row }: { row: Row<any> }) => (
   </div>
 );
 
-function TablesShow() {
-  const router = useRouter();
-  const dataSourceId = router.query.dataSourceId as string;
-  const tableName = router.query.tableName as string;
-  const { data: dataSourceResponse } = useGetDataSourceQuery(
-    { dataSourceId },
-    {
-      skip: !dataSourceId,
-    }
-  );
-  const {
-    data: columnsResponse,
-    error,
-    isLoading,
-  } = useGetColumnsQuery(
-    {
-      dataSourceId,
-      tableName,
-    },
-    {
-      skip: !dataSourceId || !tableName,
-    }
-  );
+const ResourcesIndex = memo(
+  ({
+    dataSourceId,
+    tableName,
+    columns,
+  }: {
+    dataSourceId: string;
+    tableName: string;
+    columns: Column[];
+  }) => {
+    const router = useRouter();
 
-  const columns = useMemo(
-    () => getFilteredColumns(columnsResponse?.data, Views.index),
-    [columnsResponse?.data]
-  );
+    const checkboxColumn = {
+      Header: "selector_column",
+      accessor: (row: any, i: number) => `selector_column_${i}`,
+      Cell: CheckboxColumnCell,
+      width: 70,
+      minWidth: 70,
+      maxWidth: 70,
+    };
 
-  const checkboxColumn = {
-    Header: "selector_column",
-    accessor: (row: any, i: number) => `selector_column_${i}`,
-    Cell: CheckboxColumnCell,
-    width: 70,
-    minWidth: 70,
-    maxWidth: 70,
-  };
+    const controlsColumn = {
+      Header: "controls_column",
+      accessor: (row: any, i: number) => `controls_column_${i}`,
+      Cell: SelectorColumnCell,
+      width: 104,
+      minWidth: 104,
+      maxWidth: 104,
+    };
 
-  const controlsColumn = {
-    Header: "controls_column",
-    accessor: (row: any, i: number) => `controls_column_${i}`,
-    // eslint-disable-next-line react/display-name
-    Cell: (row: any) => <SelectorColumnCell row={row.row} />,
-    width: 104,
-    minWidth: 104,
-    maxWidth: 104,
-  };
-
-  const parsedColumns = [
-    checkboxColumn,
-    ...parseColumns({ dataSourceId, columns, tableName }),
-    controlsColumn,
-  ];
-  const [orderBy, setOrderBy] = useState(router.query.orderBy as string);
-  const [orderDirection, setOrderDirection] = useState<OrderDirection>(
-    router.query.orderDirection as OrderDirection
-  );
-  const [filtersPanelVisible, toggleFiltersPanelVisible] = useBoolean(false);
-  const { appliedFilters, resetFilters } = useFilters();
-  const ac = useAccessControl();
-
-  useEffect(() => {
-    resetFilters();
-  }, [tableName]);
-
-  const filtersButton = useRef(null);
-  const filtersPanel = useRef(null);
-  useClickAway(filtersPanel, (e) => {
-    // When a user click the filters button to close the filters panel, the button is still outside,
-    // so the action triggers twice closing and opening the filters panel.
-    if (e.target !== filtersButton.current) {
-      toggleFiltersPanelVisible(false);
-    }
-  });
-
-  const { selectedRecords } = useSelectRecords();
-  const [deleteBulkRecords, { isLoading: isDeleting }] =
-    useDeleteBulkRecordsMutation();
-
-  const handleDeleteMultiple = async () => {
-    const confirmed = confirm(
-      "Are you sure you want to remove " +
-        selectedRecords.length +
-        " record(s)?"
+    const parsedColumns = [
+      checkboxColumn,
+      ...parseColumns({ dataSourceId, columns, tableName }),
+      controlsColumn,
+    ];
+    const [orderBy, setOrderBy] = useState(router.query.orderBy as string);
+    const [orderDirection, setOrderDirection] = useState<OrderDirection>(
+      router.query.orderDirection as OrderDirection
     );
-    if (confirmed) {
-      await deleteBulkRecords({
-        dataSourceId: router.query.dataSourceId as string,
-        tableName: router.query.tableName as string,
-        recordIds: selectedRecords as number[],
-      });
-    }
-  };
+    const [filtersPanelVisible, toggleFiltersPanelVisible] = useBoolean(false);
+    const { appliedFilters, resetFilters } = useFilters();
+    const ac = useAccessControl();
 
-  const deleteMessage = useMemo(
-    () =>
-      `Delete ${selectedRecords.length} ${pluralize(
-        "record",
-        selectedRecords.length
-      )}`,
-    [selectedRecords.length]
-  );
+    useEffect(() => {
+      resetFilters();
+    }, [tableName]);
 
-  return (
-    <Layout>
-      {isLoading && (
-        <LoadingOverlay
-          inPageWrapper
-          transparent={isEmpty(columnsResponse?.data)}
-        />
-      )}
-      {error && <ErrorWrapper error={error} />}
+    const filtersButton = useRef(null);
+    const filtersPanel = useRef(null);
+    useClickAway(filtersPanel, (e) => {
+      // When a user click the filters button to close the filters panel, the button is still outside,
+      // so the action triggers twice closing and opening the filters panel.
+      if (e.target !== filtersButton.current) {
+        toggleFiltersPanelVisible(false);
+      }
+    });
+
+    const { selectedRecords } = useSelectRecords();
+    const [deleteBulkRecords, { isLoading: isDeleting }] =
+      useDeleteBulkRecordsMutation();
+
+    const handleDeleteMultiple = async () => {
+      const confirmed = confirm(
+        "Are you sure you want to remove " +
+          selectedRecords.length +
+          " record(s)?"
+      );
+      if (confirmed) {
+        await deleteBulkRecords({
+          dataSourceId: router.query.dataSourceId as string,
+          tableName: router.query.tableName as string,
+          recordIds: selectedRecords as number[],
+        });
+      }
+    };
+
+    const deleteMessage = useMemo(
+      () =>
+        `Delete ${selectedRecords.length} ${pluralize(
+          "record",
+          selectedRecords.length
+        )}`,
+      [selectedRecords.length]
+    );
+
+    return (
       <PageWrapper
         heading="Browse records"
         flush={true}
         buttons={
           <ButtonGroup size="xs">
-            {ac.hasRole(OWNER_ROLE) &&
-              !dataSourceResponse?.meta?.dataSourceInfo?.readOnly && (
-                <Link
-                  href={`/data-sources/${router.query.dataSourceId}/tables/${router.query.tableName}/edit`}
-                  passHref
+            {ac.hasRole(OWNER_ROLE) && (
+              <Link
+                href={`/data-sources/${router.query.dataSourceId}/tables/${router.query.tableName}/edit`}
+                passHref
+              >
+                <Button
+                  colorScheme="blue"
+                  variant="ghost"
+                  leftIcon={<PencilAltIcon className="h-4" />}
                 >
-                  <Button
-                    colorScheme="blue"
-                    variant="ghost"
-                    leftIcon={<PencilAltIcon className="h-4" />}
-                  >
-                    Edit columns
-                  </Button>
-                </Link>
-              )}
+                  Edit columns
+                </Button>
+              </Link>
+            )}
           </ButtonGroup>
         }
         footer={
@@ -248,20 +221,61 @@ function TablesShow() {
             </div>
           </div>
           <div className="relative flex-1 flex h-full max-w-full w-full">
-            {dataSourceId && (
-              <RecordsTable
-                columns={parsedColumns}
-                orderBy={orderBy}
-                setOrderBy={setOrderBy}
-                orderDirection={orderDirection}
-                setOrderDirection={setOrderDirection}
-                tableName={tableName}
-                dataSourceId={dataSourceId}
-              />
-            )}
+            <RecordsTable
+              columns={parsedColumns}
+              orderBy={orderBy}
+              setOrderBy={setOrderBy}
+              orderDirection={orderDirection}
+              setOrderDirection={setOrderDirection}
+              tableName={tableName}
+              dataSourceId={dataSourceId}
+            />
           </div>
         </div>
       </PageWrapper>
+    );
+  }
+);
+
+ResourcesIndex.displayName = "ResourcesIndex";
+
+function TablesShow() {
+  const router = useRouter();
+  const dataSourceId = router.query.dataSourceId as string;
+  const tableName = router.query.tableName as string;
+  const {
+    data: columnsResponse,
+    error,
+    isLoading,
+  } = useGetColumnsQuery(
+    {
+      dataSourceId,
+      tableName,
+    },
+    { skip: !dataSourceId || !tableName }
+  );
+
+  const columns = useMemo(
+    () => getFilteredColumns(columnsResponse?.data, Views.index),
+    [columnsResponse?.data]
+  );
+
+  return (
+    <Layout>
+      {isLoading && (
+        <LoadingOverlay
+          inPageWrapper
+          transparent={isEmpty(columnsResponse?.data)}
+        />
+      )}
+      {error && <ErrorWrapper error={error} />}
+      {!isLoading && !error && columnsResponse?.ok && (
+        <ResourcesIndex
+          tableName={tableName}
+          columns={columns}
+          dataSourceId={dataSourceId}
+        />
+      )}
     </Layout>
   );
 }
