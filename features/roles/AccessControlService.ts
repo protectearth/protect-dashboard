@@ -1,6 +1,6 @@
 import { AccessControl, Permission } from 'accesscontrol';
 import { ListTable } from '@/plugins/data-sources/abstract-sql-query-service/types';
-import { isEmpty, isNull, isUndefined } from 'lodash';
+import { isEmpty, isUndefined } from 'lodash';
 
 export type Role = {
   name: string;
@@ -63,8 +63,6 @@ export default class AccessControlService {
 
   public canViewTable(table: ListTable) {
     if(isUndefined(table.authorizedRoles)) {
-      return true;
-    } else if(isNull(table.authorizedRoles)) {
       return true;
     } else if(isEmpty(table.authorizedRoles)){
       return false;
